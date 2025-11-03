@@ -1,6 +1,6 @@
 name: CI/CD Pipeline
 
-# Trigger the workflow on every push to main branch
+# Trigger workflow on push to main branch
 on:
   push:
     branches:
@@ -8,37 +8,55 @@ on:
 
 jobs:
   build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js environment
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      # Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '18'   # You can change this as per your project
+          node-version: '20'
 
-      # Step 3: Install dependencies
+      # Install dependencies
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # Step 4: Run tests
+      # Run tests
       - name: Run tests
         run: npm test
 
-      # Step 5: Build the project
+      # Build the project
       - name: Build project
         run: npm run build
 
-      # (Optional) Step 6: Upload build artifacts
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' # Only deploy from main branch
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          name: build-artifacts
-          path: |
-            dist/
-            build/
-            out/
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v7
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
